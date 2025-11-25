@@ -1,10 +1,18 @@
 <?php
 
-# 1.
-$a = [];
+$numbers = [];
 
-# 2.
-$f = [];
+for($i = 0; $i < 10; $i ++) {
+    $numbers[] = rand(1, 20);
+}
 
-# 3.
-// ...
+$filtered = array_filetr($numbers, function(int $number){
+    return $number < 10;
+});
+
+echo "Original array:\n";
+print_r($numbers);
+
+echo "\nFiltered array (numbers < 10):\n";
+
+print_r(array_values($filtered));

@@ -57,4 +57,48 @@ class LoanAPIController extends Controller
 
         return response()->noContent();
     }
+
+    public function putExtend(Request $request, Loan $loan): JsonResponse
+    {
+        if($loan->due_at && $loan->due_at->isPast()){
+            return response()->json([
+                'message'=>'Cannot extend an overdue loan.'
+            ], 422);
+        }
+
+        if($loan->returned_at !== null) {
+            return response() ->json([
+                'message' => 'Cannot extend a returned loan.'
+            ], 422
+        );
+        }
+
+        $data = $request->validate([
+            'additional_days' => 'required|integer|min:1|max:30',
+        ]);
+
+        $additionalDays = $data['additional_days'];
+
+        $currentDueAt = $loan->due_at ?? $loan->loanded_at->copy()->addDays(14);
+
+        $loan->due_at = $currentDueAt->copy()->addDays($additionalDays);
+        $loan->save();
+
+        return response()->json($loan->fresh(['user','book']));
+    }
+
+    public function topActiveUsers(): JsonResponse
+    {
+        $users = User::whereHas('loans', function($query){
+            $query->whereNull('returned_at');
+        })
+        ->withCount(['loans as active_loans' => function($query){
+            $query->whereNull('returned_at');
+        }])
+        ->orderByDesc('active_loans')
+        ->limit(5)
+        ->get(['id', 'name', 'email']);
+
+        return response()->json($users);
+    }
 }
